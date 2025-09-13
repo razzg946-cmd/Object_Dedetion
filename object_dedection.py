@@ -4,21 +4,29 @@ import os
 import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+from pyngrok import ngrok
 
 # ----------------------------
-# Model files (download required)
+# Ngrok Tunnel (for HTTPS)
+# ----------------------------
+if "ngrok_tunnel" not in st.session_state:
+    public_url = ngrok.connect(8501)
+    st.session_state["ngrok_tunnel"] = public_url
+    st.write(f"🌍 Public HTTPS URL: {public_url}")
+
+# ----------------------------
+# Model files
 # ----------------------------
 PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
 
 if not os.path.exists(PROTOTXT) or not os.path.exists(MODEL):
-    st.error("❌ Please put both 'MobileNetSSD_deploy.prototxt' and 'MobileNetSSD_deploy.caffemodel' in this folder.")
+    st.error("❌ Please put 'MobileNetSSD_deploy.prototxt' and 'MobileNetSSD_deploy.caffemodel' in this folder.")
     st.stop()
 
 # Load model
 net = cv2.dnn.readNetFromCaffe(PROTOTXT, MODEL)
 
-# Class labels of MobileNetSSD
 CLASSES = [
     "background", "aeroplane", "bicycle", "bird", "boat",
     "bottle", "bus", "car", "cat", "chair", "cow",
@@ -32,7 +40,7 @@ CONF_THRESH = 0.4
 # Streamlit UI
 # ----------------------------
 st.title("📷 Live Object Detection")
-st.write("Click **Start Camera** to open your phone camera and detect objects in real time.")
+st.write("Click below to start your **phone camera** and detect objects in real time.")
 
 # ----------------------------
 # Video Transformer
@@ -42,7 +50,6 @@ class ObjectDetector(VideoTransformerBase):
         img = frame.to_ndarray(format="bgr24")
         (h, w) = img.shape[:2]
 
-        # Prepare input blob
         blob = cv2.dnn.blobFromImage(
             cv2.resize(img, (300, 300)), 0.007843, (300, 300), 127.5
         )
@@ -62,26 +69,16 @@ class ObjectDetector(VideoTransformerBase):
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                 count += 1
 
-        # Show object count
-        cv2.putText(
-            img,
-            f"Objects: {count}",
-            (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255),
-            2,
-        )
+        cv2.putText(img, f"Objects: {count}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ----------------------------
-# Open Camera Button
+# Open Camera
 # ----------------------------
-if st.button("📸 Start Camera"):
-    webrtc_streamer(
-        key="object-detect",
-        video_transformer_factory=ObjectDetector,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-        media_stream_constraints={"video": True, "audio": False},
-    )
+webrtc_streamer(
+    key="object-detect",
+    video_transformer_factory=ObjectDetector,
+    media_stream_constraints={"video": True, "audio": False},
+)

@@ -84,24 +84,20 @@ class PersonDetector(VideoTransformerBase):
         cv2.putText(
             img,
             f"People: {count}",
-            (10, 30),
+            (10, 40),
             cv2.FONT_HERSHEY_SIMPLEX,
-            1,
+            1.2,
             (0, 0, 255),
-            2
+            3
         )
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ----------------------------
-# WebRTC Stream
+# WebRTC Stream (fixed)
 # ----------------------------
 webrtc_streamer(
     key="people-detect",
-    mode="recvonly",
     video_transformer_factory=PersonDetector,
-    rtc_configuration={
-        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-    },
-    media_stream_constraints={"video": True, "audio": False},
+    media_stream_constraints={"video": True, "audio": False},  # ✅ Only video
 )

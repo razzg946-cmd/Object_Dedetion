@@ -4,7 +4,7 @@ import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import os
-import gdown
+import requests
 
 # ----------------------------
 # Model files
@@ -12,21 +12,28 @@ import gdown
 PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
 
-PROTOTXT_URL = "https://raw.githubusercontent.com/chuanqi305/MobileNet-SSD/master/MobileNetSSD_deploy.prototxt"
+PROTOTXT_URL = "https://github.com/chuanqi305/MobileNet-SSD/raw/master/MobileNetSSD_deploy.prototxt"
 MODEL_URL = "https://github.com/chuanqi305/MobileNet-SSD/raw/master/MobileNetSSD_deploy.caffemodel"
 
 # ----------------------------
 # Helper function: download if missing or corrupted
 # ----------------------------
-def ensure_file(path, url):
-    if not os.path.exists(path) or os.path.getsize(path) < 1000:
+def ensure_file(path, url, min_size):
+    if not os.path.exists(path) or os.path.getsize(path) < min_size:
         if os.path.exists(path):
             os.remove(path)  # remove corrupt file
-        gdown.download(url, path, quiet=False)
+        st.write(f"⬇️ Downloading {path} ...")
+        r = requests.get(url)
+        if r.status_code == 200:
+            with open(path, "wb") as f:
+                f.write(r.content)
+        else:
+            st.error(f"❌ Failed to download {url}")
+            st.stop()
 
 # Ensure model files exist
-ensure_file(PROTOTXT, PROTOTXT_URL)
-ensure_file(MODEL, MODEL_URL)
+ensure_file(PROTOTXT, PROTOTXT_URL, min_size=2000)        # prototxt ~28KB
+ensure_file(MODEL, MODEL_URL, min_size=20000000)          # caffemodel ~23MB
 
 # ----------------------------
 # Load model

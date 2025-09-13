@@ -4,7 +4,8 @@ opencv-python-headless
 numpy
 av
 python3.10 -m venv venv
-pip install --upgrade streamlit-webrtc
+
+
 
 
 

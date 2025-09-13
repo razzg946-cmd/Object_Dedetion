@@ -6,14 +6,17 @@ from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import os
 
 # ----------------------------
-# Model files (manual)
+# Model files (manual download required)
 # ----------------------------
 PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
 
-# Check if files exist
+# Check if both files exist
 if not os.path.exists(PROTOTXT) or not os.path.exists(MODEL):
-    st.error("❌ Please make sure MobileNetSSD_deploy.prototxt and MobileNetSSD_deploy.caffemodel are in the app folder.")
+    st.error(
+        "❌ Please make sure both 'MobileNetSSD_deploy.prototxt' and "
+        "'MobileNetSSD_deploy.caffemodel' are in the app folder."
+    )
     st.stop()
 
 # ----------------------------
@@ -35,16 +38,16 @@ st.title("👥 Real-time People Detection (Phone Camera)")
 st.markdown(
     """
     📱 **How to use**  
-    1. Make sure model files are in the same folder as this app.  
+    1. Make sure both model files are in the same folder as this app.  
     2. Run the app on your PC:  
        ```
        streamlit run app.py
        ```
-    3. Open the URL on your phone browser using your PC's IP, e.g.  
+    3. Open the URL on your **phone browser** using your PC's IP, e.g.  
        ```
        http://192.168.x.x:8501
        ```
-    4. Allow camera access → live people detection & count will show automatically ✅
+    4. Allow camera access → live people detection & count will appear automatically ✅
     """
 )
 
@@ -57,8 +60,12 @@ class PersonDetector(VideoTransformerBase):
         (h, w) = img.shape[:2]
 
         # Prepare input blob
-        blob = cv2.dnn.blobFromImage(cv2.resize(img, (300, 300)),
-                                     0.007843, (300, 300), 127.5)
+        blob = cv2.dnn.blobFromImage(
+            cv2.resize(img, (300, 300)),
+            0.007843,
+            (300, 300),
+            127.5
+        )
         net.setInput(blob)
         detections = net.forward()
 
@@ -74,8 +81,15 @@ class PersonDetector(VideoTransformerBase):
                     count += 1
 
         # Draw people count
-        cv2.putText(img, f"People: {count}", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.putText(
+            img,
+            f"People: {count}",
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2
+        )
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
@@ -91,4 +105,3 @@ webrtc_streamer(
     },
     media_stream_constraints={"video": True, "audio": False},
 )
-

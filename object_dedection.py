@@ -4,7 +4,7 @@ import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import os
-import gdown
+import requests
 
 # ----------------------------
 # Model files (Google Drive links)
@@ -13,8 +13,8 @@ PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
 
 # Google Drive file IDs (direct download links)
-PROTOTXT_ID = "1q4JrP6j5s3hXxTVaR-PX7Y7v_y12y9qJ"   # uploaded prototxt
-MODEL_ID = "1Rdp6_Y6GL0CXWuS6jGd6C-K7ZYmHpRHV"     # uploaded caffemodel
+PROTOTXT_ID = "1q4JrP6j5s3hXxTVaR-PX7Y7v_y12y9qJ"
+MODEL_ID = "1Rdp6_Y6GL0CXWuS6jGd6C-K7ZYmHpRHV"
 
 PROTOTXT_URL = f"https://drive.google.com/uc?id={PROTOTXT_ID}"
 MODEL_URL = f"https://drive.google.com/uc?id={MODEL_ID}"
@@ -22,15 +22,22 @@ MODEL_URL = f"https://drive.google.com/uc?id={MODEL_ID}"
 # ----------------------------
 # Helper function: download if missing or corrupted
 # ----------------------------
-def ensure_file(path, url):
-    if not os.path.exists(path) or os.path.getsize(path) < 1000:
+def ensure_file(path, url, min_size=1000):
+    if not os.path.exists(path) or os.path.getsize(path) < min_size:
         if os.path.exists(path):
-            os.remove(path)  # remove corrupt file
-        gdown.download(url, path, quiet=False)
+            os.remove(path)
+        st.info(f"⬇ Downloading {path} ...")
+        r = requests.get(url, allow_redirects=True)
+        if r.status_code == 200:
+            with open(path, "wb") as f:
+                f.write(r.content)
+        else:
+            st.error(f"❌ Failed to download {path}")
+            st.stop()
 
 # Ensure model files exist
-ensure_file(PROTOTXT, PROTOTXT_URL)
-ensure_file(MODEL, MODEL_URL)
+ensure_file(PROTOTXT, PROTOTXT_URL, min_size=2000)
+ensure_file(MODEL, MODEL_URL, min_size=20000000)
 
 # ----------------------------
 # Load model

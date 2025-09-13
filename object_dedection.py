@@ -35,6 +35,22 @@ CONF_THRESH = 0.4
 st.title("📷 Live Object & People Detection")
 st.write("📱 Open your **camera** below. It will detect and count objects + people in real-time.")
 
+# Camera size option
+camera_size = st.radio(
+    "📏 Select Camera Size:",
+    ["Medium", "Large", "Full"],
+    index=0,
+    horizontal=True
+)
+
+# Camera width mapping
+if camera_size == "Medium":
+    cam_style = {"width": "60%", "height": "auto"}
+elif camera_size == "Large":
+    cam_style = {"width": "80%", "height": "auto"}
+else:  # Full
+    cam_style = {"width": "100%", "height": "auto"}
+
 # ----------------------------
 # Video Transformer
 # ----------------------------
@@ -62,18 +78,19 @@ class ObjectDetector(VideoTransformerBase):
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (sx, sy, ex, ey) = box.astype("int")
                 cv2.rectangle(img, (sx, sy), (ex, ey), (0, 255, 0), 2)
-                cv2.putText(img, label, (sx, sy - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                cv2.putText(img, f"{label}: {conf:.2f}", (sx, sy - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 total_objects += 1
                 if class_id == PERSON_CLASS_ID:
                     people_count += 1
 
-        # Show counts
+        # Show counts at top-left
+        cv2.rectangle(img, (5, 5), (300, 70), (255, 255, 255), -1)  # background box
         cv2.putText(
             img,
             f"Objects: {total_objects} | People: {people_count}",
-            (10, 30),
+            (10, 45),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
             (0, 0, 255),
@@ -83,14 +100,12 @@ class ObjectDetector(VideoTransformerBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ----------------------------
-# Open Camera (Bigger Screen)
+# Open Camera with size option
 # ----------------------------
 webrtc_streamer(
     key="object-detect",
     video_transformer_factory=ObjectDetector,
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
     media_stream_constraints={"video": True, "audio": False},
-    video_html_attrs={
-        "style": {"width": "90%", "height": "auto"},  # bigger preview
-    },
+    video_html_attrs={"style": cam_style},
 )

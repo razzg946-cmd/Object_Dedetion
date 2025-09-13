@@ -4,40 +4,17 @@ import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import os
-import requests
 
 # ----------------------------
-# Model files (Google Drive links)
+# Model files (manual)
 # ----------------------------
 PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
 
-# Google Drive file IDs (direct download links)
-PROTOTXT_ID = "1q4JrP6j5s3hXxTVaR-PX7Y7v_y12y9qJ"
-MODEL_ID = "1Rdp6_Y6GL0CXWuS6jGd6C-K7ZYmHpRHV"
-
-PROTOTXT_URL = f"https://drive.google.com/uc?id={PROTOTXT_ID}"
-MODEL_URL = f"https://drive.google.com/uc?id={MODEL_ID}"
-
-# ----------------------------
-# Helper function: download if missing or corrupted
-# ----------------------------
-def ensure_file(path, url, min_size=1000):
-    if not os.path.exists(path) or os.path.getsize(path) < min_size:
-        if os.path.exists(path):
-            os.remove(path)
-        st.info(f"⬇ Downloading {path} ...")
-        r = requests.get(url, allow_redirects=True)
-        if r.status_code == 200:
-            with open(path, "wb") as f:
-                f.write(r.content)
-        else:
-            st.error(f"❌ Failed to download {path}")
-            st.stop()
-
-# Ensure model files exist
-ensure_file(PROTOTXT, PROTOTXT_URL, min_size=2000)
-ensure_file(MODEL, MODEL_URL, min_size=20000000)
+# Check if files exist
+if not os.path.exists(PROTOTXT) or not os.path.exists(MODEL):
+    st.error("❌ Please make sure MobileNetSSD_deploy.prototxt and MobileNetSSD_deploy.caffemodel are in the app folder.")
+    st.stop()
 
 # ----------------------------
 # Load model
@@ -58,15 +35,16 @@ st.title("👥 Real-time People Detection (Phone Camera)")
 st.markdown(
     """
     📱 **How to use**  
-    1. Run this app:  
-       ```bash
+    1. Make sure model files are in the same folder as this app.  
+    2. Run the app on your PC:  
+       ```
        streamlit run app.py
        ```
-    2. Open in your **phone browser** using your PC's IP, e.g.  
+    3. Open the URL on your phone browser using your PC's IP, e.g.  
        ```
        http://192.168.x.x:8501
        ```
-    3. Allow camera access → People will be detected live ✅
+    4. Allow camera access → live people detection & count will show automatically ✅
     """
 )
 
@@ -95,7 +73,7 @@ class PersonDetector(VideoTransformerBase):
                     cv2.rectangle(img, (sx, sy), (ex, ey), (0, 255, 0), 2)
                     count += 1
 
-        # Draw count
+        # Draw people count
         cv2.putText(img, f"People: {count}", (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 

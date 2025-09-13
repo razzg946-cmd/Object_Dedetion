@@ -4,15 +4,6 @@ import os
 import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-from pyngrok import ngrok
-
-# ----------------------------
-# Ngrok Tunnel (for HTTPS)
-# ----------------------------
-if "ngrok_tunnel" not in st.session_state:
-    public_url = ngrok.connect(8501)
-    st.session_state["ngrok_tunnel"] = public_url
-    st.write(f"🌍 Public HTTPS URL: {public_url}")
 
 # ----------------------------
 # Model files
@@ -40,7 +31,7 @@ CONF_THRESH = 0.4
 # Streamlit UI
 # ----------------------------
 st.title("📷 Live Object Detection")
-st.write("Click below to start your **phone camera** and detect objects in real time.")
+st.write("Click **Start Camera** to open your phone camera and detect objects in real time.")
 
 # ----------------------------
 # Video Transformer

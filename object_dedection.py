@@ -4,36 +4,33 @@ import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import os
-import requests
+import gdown
 
 # ----------------------------
-# Model files
+# Model files (Google Drive links)
 # ----------------------------
 PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
 
-PROTOTXT_URL = "https://github.com/chuanqi305/MobileNet-SSD/raw/master/MobileNetSSD_deploy.prototxt"
-MODEL_URL = "https://github.com/chuanqi305/MobileNet-SSD/raw/master/MobileNetSSD_deploy.caffemodel"
+# Google Drive file IDs (direct download links)
+PROTOTXT_ID = "1q4JrP6j5s3hXxTVaR-PX7Y7v_y12y9qJ"   # uploaded prototxt
+MODEL_ID = "1Rdp6_Y6GL0CXWuS6jGd6C-K7ZYmHpRHV"     # uploaded caffemodel
+
+PROTOTXT_URL = f"https://drive.google.com/uc?id={PROTOTXT_ID}"
+MODEL_URL = f"https://drive.google.com/uc?id={MODEL_ID}"
 
 # ----------------------------
 # Helper function: download if missing or corrupted
 # ----------------------------
-def ensure_file(path, url, min_size):
-    if not os.path.exists(path) or os.path.getsize(path) < min_size:
+def ensure_file(path, url):
+    if not os.path.exists(path) or os.path.getsize(path) < 1000:
         if os.path.exists(path):
             os.remove(path)  # remove corrupt file
-        st.write(f"⬇️ Downloading {path} ...")
-        r = requests.get(url)
-        if r.status_code == 200:
-            with open(path, "wb") as f:
-                f.write(r.content)
-        else:
-            st.error(f"❌ Failed to download {url}")
-            st.stop()
+        gdown.download(url, path, quiet=False)
 
 # Ensure model files exist
-ensure_file(PROTOTXT, PROTOTXT_URL, min_size=2000)        # prototxt ~28KB
-ensure_file(MODEL, MODEL_URL, min_size=20000000)          # caffemodel ~23MB
+ensure_file(PROTOTXT, PROTOTXT_URL)
+ensure_file(MODEL, MODEL_URL)
 
 # ----------------------------
 # Load model
@@ -55,7 +52,7 @@ st.markdown(
     """
     📱 **How to use**  
     1. Run this app:  
-       ```
+       ```bash
        streamlit run app.py
        ```
     2. Open in your **phone browser** using your PC's IP, e.g.  

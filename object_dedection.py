@@ -32,7 +32,7 @@ CONF_THRESH = 0.4
 # ----------------------------
 # Streamlit UI
 # ----------------------------
-st.title("📷 Live Object & People Detection")
+st.title("📷 Live Object Detection by Raj")
 st.write("📱 Open your **camera** below. It will detect and count objects + people in real-time.")
 
 # Camera size option

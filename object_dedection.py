@@ -6,7 +6,7 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
 # ----------------------------
-# Model files (manual download)
+# Model files
 # ----------------------------
 PROTOTXT = "MobileNetSSD_deploy.prototxt"
 MODEL = "MobileNetSSD_deploy.caffemodel"
@@ -27,7 +27,7 @@ CLASSES = [
 ]
 
 PERSON_CLASS_ID = 15   # 'person' is ID 15
-CONF_THRESH = 0.3      # lowered threshold
+CONF_THRESH = 0.3
 
 # ----------------------------
 # Streamlit UI
@@ -35,7 +35,6 @@ CONF_THRESH = 0.3      # lowered threshold
 st.title("📷 Live Object Detection by Raj")
 st.write("📱 Open your **camera** below. It will detect and count objects + people in real-time.")
 
-# Camera size option
 camera_size = st.radio(
     "📏 Select Camera Size:",
     ["Medium", "Large", "Full"],
@@ -58,7 +57,6 @@ class ObjectDetector(VideoTransformerBase):
         img = frame.to_ndarray(format="bgr24")
         (h, w) = img.shape[:2]
 
-        # Blob for model
         blob = cv2.dnn.blobFromImage(
             cv2.resize(img, (300, 300)), 0.007843, (300, 300), 127.5
         )
@@ -72,7 +70,7 @@ class ObjectDetector(VideoTransformerBase):
             conf = float(detections[0, 0, i, 2])
             if conf > CONF_THRESH:
                 class_id = int(detections[0, 0, i, 1])
-                if class_id >= len(CLASSES):  # skip invalid IDs
+                if class_id >= len(CLASSES):
                     continue
                 label = CLASSES[class_id]
 
@@ -80,21 +78,34 @@ class ObjectDetector(VideoTransformerBase):
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (sx, sy, ex, ey) = box.astype("int")
 
-                # Clip box to frame size
+                # Clip to frame size
                 sx, sy = max(0, sx), max(0, sy)
                 ex, ey = min(w - 1, ex), min(h - 1, ey)
 
+                # Draw rectangle in green
                 cv2.rectangle(img, (sx, sy), (ex, ey), (0, 255, 0), 2)
-                cv2.putText(img, f"{label} {conf:.2f}", (sx, max(sy - 5, 15)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                total_objects += 1
+                # Label at bottom of rectangle
+                text_y = ey + 20 if ey + 20 < h else ey - 10
                 if class_id == PERSON_CLASS_ID:
                     people_count += 1
+                    cv2.putText(img, "Person", (sx, text_y),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                else:
+                    cv2.putText(img, label, (sx, text_y),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
-        # Show counts at top-left corner
-        cv2.rectangle(img, (5, 5), (300, 70), (255, 255, 255), -1)
-        cv2.putText(img, f"Objects: {total_objects} | People: {people_count}",
+                total_objects += 1
+
+        # People text (singular/plural)
+        if people_count == 1:
+            people_text = "1 Person"
+        else:
+            people_text = f"{people_count} Persons"
+
+        # Show counts at top-left
+        cv2.rectangle(img, (5, 5), (340, 70), (255, 255, 255), -1)
+        cv2.putText(img, f"Objects: {total_objects} | {people_text}",
                     (10, 45),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                     (0, 0, 255), 2)

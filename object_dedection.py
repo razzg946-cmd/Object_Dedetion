@@ -18,7 +18,7 @@ if not os.path.exists(PROTOTXT) or not os.path.exists(MODEL):
 # Load model
 net = cv2.dnn.readNetFromCaffe(PROTOTXT, MODEL)
 
-# COCO class labels for MobileNetSSD
+# Class labels MobileNetSSD was trained on
 CLASSES = [
     "background", "aeroplane", "bicycle", "bird", "boat",
     "bottle", "bus", "car", "cat", "chair", "cow",
@@ -26,8 +26,8 @@ CLASSES = [
     "pottedplant", "sheep", "sofa", "train", "tvmonitor",
 ]
 
-PERSON_CLASS_ID = 15
-CONF_THRESH = 0.4
+PERSON_CLASS_ID = 15   # 'person' is ID 15
+CONF_THRESH = 0.3      # lowered threshold
 
 # ----------------------------
 # Streamlit UI
@@ -43,12 +43,11 @@ camera_size = st.radio(
     horizontal=True
 )
 
-# Camera width mapping
 if camera_size == "Medium":
     cam_style = {"width": "60%", "height": "auto"}
 elif camera_size == "Large":
     cam_style = {"width": "80%", "height": "auto"}
-else:  # Full
+else:
     cam_style = {"width": "100%", "height": "auto"}
 
 # ----------------------------
@@ -59,7 +58,7 @@ class ObjectDetector(VideoTransformerBase):
         img = frame.to_ndarray(format="bgr24")
         (h, w) = img.shape[:2]
 
-        # Prepare blob
+        # Blob for model
         blob = cv2.dnn.blobFromImage(
             cv2.resize(img, (300, 300)), 0.007843, (300, 300), 127.5
         )
@@ -73,34 +72,37 @@ class ObjectDetector(VideoTransformerBase):
             conf = float(detections[0, 0, i, 2])
             if conf > CONF_THRESH:
                 class_id = int(detections[0, 0, i, 1])
+                if class_id >= len(CLASSES):  # skip invalid IDs
+                    continue
                 label = CLASSES[class_id]
 
+                # Bounding box
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (sx, sy, ex, ey) = box.astype("int")
+
+                # Clip box to frame size
+                sx, sy = max(0, sx), max(0, sy)
+                ex, ey = min(w - 1, ex), min(h - 1, ey)
+
                 cv2.rectangle(img, (sx, sy), (ex, ey), (0, 255, 0), 2)
-                cv2.putText(img, f"{label}: {conf:.2f}", (sx, sy - 10),
+                cv2.putText(img, f"{label} {conf:.2f}", (sx, max(sy - 5, 15)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 total_objects += 1
                 if class_id == PERSON_CLASS_ID:
                     people_count += 1
 
-        # Show counts at top-left
-        cv2.rectangle(img, (5, 5), (300, 70), (255, 255, 255), -1)  # background box
-        cv2.putText(
-            img,
-            f"Objects: {total_objects} | People: {people_count}",
-            (10, 45),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255),
-            2,
-        )
+        # Show counts at top-left corner
+        cv2.rectangle(img, (5, 5), (300, 70), (255, 255, 255), -1)
+        cv2.putText(img, f"Objects: {total_objects} | People: {people_count}",
+                    (10, 45),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                    (0, 0, 255), 2)
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ----------------------------
-# Open Camera with size option
+# Start Streamlit WebRTC
 # ----------------------------
 webrtc_streamer(
     key="object-detect",
